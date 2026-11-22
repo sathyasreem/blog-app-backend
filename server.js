@@ -105,6 +105,7 @@ app.get("/api/blogs", async (req, res) => {
   const blogs = await Blog.find().sort({ createdAt: -1 });
   res.json(blogs);
 });
+
 app.get("/api/blogs/:id", async (req, res) => {
   try {
     const blog = await Blog.findById(req.params.id);
@@ -115,6 +116,36 @@ app.get("/api/blogs/:id", async (req, res) => {
   }
 });
 
+app.put("/api/blogs/:id", auth, async (req, res) => {
+  try {
+    const { title, content } = req.body;
+    if (!title || !content)
+      return res.status(400).json({ message: "Title and content required" });
+    const blog = await Blog.findById(req.params.id);
+    if (!blog) return res.status(404).json({ message: "Blog not found" });
+    if (blog.userId !== String(req.user.id))
+      return res.status(403).json({ message: "Not your blog" });
+    blog.title = title;
+    blog.content = content;
+    await blog.save();
+    res.json(blog);
+  } catch (e) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.delete("/api/blogs/:id", auth, async (req, res) => {
+  try {
+    const blog = await Blog.findById(req.params.id);
+    if (!blog) return res.status(404).json({ message: "Blog not found" });
+    if (blog.userId !== String(req.user.id))
+      return res.status(403).json({ message: "Not your blog" });
+    await blog.deleteOne();
+    res.json({ message: "Blog deleted" });
+  } catch (e) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log("Server running on " + PORT));
